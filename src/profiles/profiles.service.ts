@@ -1,50 +1,60 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable,NotFoundException,NotImplementedException } from '@nestjs/common';
 import { createProfileDto, updateProfileDto } from './dto/create.profiles.dto';
 
 @Injectable()
 export class ProfilesService {
   private profiles = [
-    { id: '1', name: 'Alice', desc: 'Software Engineer', location: 'London' },
+    { 
+      id: '1', name: 'Alice', desc: 'Software Engineer', location: 'London' 
+    },
     { id: '2', name: 'Bob', desc: 'Product Manager', location: 'New York' },
   ];
   findAll() {
     return this.profiles;
   }
   findOne(id: string) {
-    return this.profiles.find((profile) => profile.id === id);
+    // return this.profiles.find((profile) => profile.id === id);
+    const machingProfile = this.profiles.find((profile)=>profile.id===id);
+    if (!machingProfile){
+      throw new Error(`Profile with id ${id} not found`);
+
+    }
+    return machingProfile;
   }
 
-  create(createProfileDto: createProfileDto) {
-   const newProfile = {
-    id: (this.profiles.length + 1).toString(),
+create(createProfileDto:createProfileDto){
+  const newProfile={
+    id:(this.profiles.length+1).toString(),
     ...createProfileDto,
-   }
-   this.profiles.push(newProfile);
-   return newProfile;
   }
+  this.profiles.push(newProfile);
+  return newProfile;
+}
 
   update(id:string, updateProfileDto:updateProfileDto){
-    const profileUpdate = this.profiles.find(
-        (profile)=>profile.id === id
-    )
-    if (!profileUpdate) {
-        return {};
+    const matchingProfile=this.profiles.find((profile)=>profile.id===id)
+   
+    if (!matchingProfile){
+      throw new NotImplementedException(`Profile with id ${id} not implemented yet`);
+    
     }
-    profileUpdate.name = updateProfileDto.name;
-    profileUpdate.desc = updateProfileDto.desc;
-    return profileUpdate;
+matchingProfile.name=updateProfileDto.name;
+matchingProfile.desc=updateProfileDto.desc;
+matchingProfile.location=updateProfileDto.location;
+return matchingProfile;
 
 
   
 }
 
 delete(id:string){
-    const index = this.profiles.findIndex((profile) => profile.id === id);
-    if (index === -1) {
-      return false; 
-    }
-    this.profiles.splice(index, 1);
-    return true; 
+   const profileIndex=this.profiles.findIndex((profile)=>profile.id===id);
+   if (profileIndex===-1){
+   throw new NotFoundException(`Profile with id ${id} not found`);
+  
+   }
+    this.profiles.splice(profileIndex,1);
+    return true;
 
 }
 }

@@ -9,10 +9,14 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
-  Patch,
+  NotFoundException,
+  ParseIntPipe,
+  ValidationPipe,
 } from '@nestjs/common';
+import type { UUID } from 'crypto';
 import { ProfilesService } from './profiles.service';
 import { createProfileDto, updateProfileDto } from './dto/create.profiles.dto';
+import { throwError } from 'rxjs';
 // decorator @Controller() is used to define a controller in NestJS. It takes an optional string parameter that specifies the route path for the controller. In this case, the controller will handle requests to the '/profiles' route.
 @Controller('profiles')
 export class ProfilesController {
@@ -24,19 +28,30 @@ export class ProfilesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.profilesService.findOne(id);
+  findOne(@Param('id',ParseIntPipe) id: UUID) {
+    // return this.profilesService.findOne(id);
+    // throwError(() => new NotFoundException(`Profile with id ${id} not found`));
+    // return this.profilesService.findOne(id);
+    try {
+       return this.profilesService.findOne(id);
+      
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+   
+
+
   }
 
   @Post()
-  create(@Body() createProfileDto: createProfileDto){
+  create(@Body(new ValidationPipe()) createProfileDto: createProfileDto){
     return this.profilesService.create(createProfileDto);
   }
 
   
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateProfileDto: updateProfileDto) {
+  update(@Param('id', ParseIntPipe) id:UUID, @Body(new ValidationPipe()) updateProfileDto: updateProfileDto) {
    return this.profilesService.update(id,updateProfileDto)
   }
 
