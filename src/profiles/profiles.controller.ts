@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-
   Param,
   Post,
   Body,
@@ -12,12 +11,14 @@ import {
   NotFoundException,
   ParseIntPipe,
   ValidationPipe,
+
 } from '@nestjs/common';
 import type { UUID } from 'crypto';
 import { ProfilesService } from './profiles.service';
 import { createProfileDto, updateProfileDto } from './dto/create.profiles.dto';
 import { throwError } from 'rxjs';
-// decorator @Controller() is used to define a controller in NestJS. It takes an optional string parameter that specifies the route path for the controller. In this case, the controller will handle requests to the '/profiles' route.
+// decorator @Controller() is used to define a controller in NestJS.
+//  It takes an optional string parameter that specifies the route path for the controller. In this case, the controller will handle requests to the '/profiles' route.
 @Controller('profiles')
 export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
@@ -28,7 +29,7 @@ export class ProfilesController {
   }
 
   @Get(':id')
-  findOne(@Param('id',ParseIntPipe) id: UUID) {
+  findOne(@Param('id',ParseIntPipe) id: number) {
     // return this.profilesService.findOne(id);
     // throwError(() => new NotFoundException(`Profile with id ${id} not found`));
     // return this.profilesService.findOne(id);
@@ -49,23 +50,26 @@ export class ProfilesController {
   }
 
   
-
-  @Put(':id')
-  update(@Param('id', ParseIntPipe) id:UUID, @Body(new ValidationPipe()) updateProfileDto: updateProfileDto) {
-   return this.profilesService.update(id,updateProfileDto)
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-    delete(@Param('id') id: string) {
-    const isDeleted = this.profilesService.delete(id);
-    if (!isDeleted) {
-      return { message: `Profile with id ${id} not found` };
-    }
-     return { message: `Profile with id ${id} deleted successfully` };
+@Put(':id')
+async update(@Param('id',ParseIntPipe) id:number,@Body(new ValidationPipe()) updateProfileDto:updateProfileDto){
+  try {
+    return await this.profilesService.update(id,updateProfileDto);
+    
+  } catch (error) {
+    throw new NotFoundException(error.message);
   }
 }
 
+@Delete(':id')
+async delete(@Param('id',ParseIntPipe) id:number){
+  try {
+    return await this.profilesService.delete(id);
+    
+  } catch (error) {
+    throw new NotFoundException(error.message);
+  }
+}
+}
 // @Controller('profiles') is a decorator that defines a controller for handling,
 // requests to the '/profiles' route. This means that any HTTP requests made to '/profiles' will be handled by this controller.
 

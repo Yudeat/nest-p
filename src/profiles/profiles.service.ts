@@ -1,60 +1,57 @@
 import { Injectable,NotFoundException,NotImplementedException } from '@nestjs/common';
 import { createProfileDto, updateProfileDto } from './dto/create.profiles.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Profile } from '../typeOrm';
 
 @Injectable()
 export class ProfilesService {
-  private profiles = [
-    { 
-      id: '1', name: 'Alice', desc: 'Software Engineer', location: 'London' 
-    },
-    { id: '2', name: 'Bob', desc: 'Product Manager', location: 'New York' },
-  ];
-  findAll() {
-    return this.profiles;
+  constructor(
+    @InjectRepository(Profile)
+    private readonly profileRepository:Repository<Profile>
+
+  ) {}
+
+ 
+  async findAll() {
+    return await this.profileRepository.find();
   }
-  findOne(id: string) {
+  async findOne(id) {
     // return this.profiles.find((profile) => profile.id === id);
-    const machingProfile = this.profiles.find((profile)=>profile.id===id);
-    if (!machingProfile){
+    const machingProfile = await this.profileRepository.findBy({id})
+    if (!machingProfile || machingProfile.length === 0){
       throw new Error(`Profile with id ${id} not found`);
 
     }
-    return machingProfile;
+    return machingProfile[0];
   }
 
-create(createProfileDto:createProfileDto){
-  const newProfile={
-    id:(this.profiles.length+1).toString(),
-    ...createProfileDto,
-  }
-  this.profiles.push(newProfile);
-  return newProfile;
-}
+  //data entry in database 
+async create(dto:createProfileDto){
+ const profile=await this.profileRepository.create(dto);
+ return this.profileRepository.save(profile);
+};
 
-  update(id:string, updateProfileDto:updateProfileDto){
-    const matchingProfile=this.profiles.find((profile)=>profile.id===id)
-   
-    if (!matchingProfile){
-      throw new NotImplementedException(`Profile with id ${id} not implemented yet`);
+
+async update(id: number, dto: updateProfileDto) {
+    const profile = await this.findOne(id); 
     
-    }
-matchingProfile.name=updateProfileDto.name;
-matchingProfile.desc=updateProfileDto.desc;
-matchingProfile.location=updateProfileDto.location;
-return matchingProfile;
+    // Merges the new changes into the existing entity
+    const updatedProfile = this.profileRepository.merge(profile, dto);
+    return await this.profileRepository.save(updatedProfile);
+  }
 
 
-  
-}
-
-delete(id:string){
-   const profileIndex=this.profiles.findIndex((profile)=>profile.id===id);
-   if (profileIndex===-1){
-   throw new NotFoundException(`Profile with id ${id} not found`);
-  
-   }
-    this.profiles.splice(profileIndex,1);
-    return true;
+async delete(id:number){
+  const profile=await this.profileRepository.delete(id);
+  if (profile.affected === 0){
+    throw new NotFoundException(`Profile with id ${id} not found`);
+  }
+  return {message:`Profile with id ${id} deleted successfully`};}
 
 }
-}
+    
+
+
+
+
