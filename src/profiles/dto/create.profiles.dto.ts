@@ -1,5 +1,6 @@
 import { IsString,Length } from 'class-validator';
 
+
 export class createProfileDto {
   @IsString()
   @Length(3, 20)

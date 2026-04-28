@@ -11,15 +11,16 @@ import {
   NotFoundException,
   ParseIntPipe,
   ValidationPipe,
+  UseInterceptors,
+  ClassSerializerInterceptor,
 
 } from '@nestjs/common';
-import type { UUID } from 'crypto';
 import { ProfilesService } from './profiles.service';
 import { createProfileDto, updateProfileDto } from './dto/create.profiles.dto';
-import { throwError } from 'rxjs';
 // decorator @Controller() is used to define a controller in NestJS.
 //  It takes an optional string parameter that specifies the route path for the controller. In this case, the controller will handle requests to the '/profiles' route.
 @Controller('profiles')
+@UseInterceptors(ClassSerializerInterceptor) // Apply the interceptor to the entire controller
 export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 
