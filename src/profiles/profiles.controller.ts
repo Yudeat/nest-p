@@ -13,8 +13,10 @@ import {
   ValidationPipe,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Version,
 
 } from '@nestjs/common';
+
 import { ProfilesService } from './profiles.service';
 import { createProfileDto, updateProfileDto } from './dto/create.profiles.dto';
 // decorator @Controller() is used to define a controller in NestJS.
@@ -23,11 +25,17 @@ import { createProfileDto, updateProfileDto } from './dto/create.profiles.dto';
 @UseInterceptors(ClassSerializerInterceptor) // Apply the interceptor to the entire controller
 export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
-
+@Version('1')
   @Get()
   findAll() {
     return this.profilesService.findAll();
   }
+  @Version('2')
+  @Get()
+  findAll2() {
+    return this.profilesService.findAll();
+  }
+
 
   @Get(':id')
   findOne(@Param('id',ParseIntPipe) id: number) {
