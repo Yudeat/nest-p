@@ -14,8 +14,10 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
   Version,
+  UploadedFile,
 
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { ProfilesService } from './profiles.service';
 import { createProfileDto, updateProfileDto } from './dto/create.profiles.dto';
@@ -56,6 +58,24 @@ export class ProfilesController {
   @Post()
   create(@Body(new ValidationPipe()) createProfileDto: createProfileDto){
     return this.profilesService.create(createProfileDto);
+  }
+  @Post('file')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(@UploadedFile() file:Express.Multer.File){
+    try {
+      if (!file) {
+        throw new NotFoundException('No file uploaded');
+      }
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+    console.log(file);
+    return {
+      message:'File uploaded successfully',
+      fileName:file.originalname,
+      fileSize:file.size,
+    }
   }
 
   
