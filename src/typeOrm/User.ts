@@ -39,6 +39,14 @@ export class Profile{
     
     })
     location:string;
+    
+    @Column({
+        type:'varchar',
+        length:255,
+        name:'avatar',
+        nullable:true,
+    })
+    avatar:string;
 
     @CreateDateColumn({
         type:'timestamp',

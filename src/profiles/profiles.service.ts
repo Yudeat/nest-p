@@ -82,15 +82,24 @@ async create (dto:createProfileDto){
   throw new NotImplementedException(`Failed to create profile: ${error.message}`);
 }  
 }
-
+async updateProfileAvatar(id:number,filePath:string){
+  const profile=await this.profileRepository.findOneBy({id});
+  if (!profile){
+    throw new NotFoundException(`Profile with id ${id} not found`);
+  }
+  profile.avatar=filePath;
+  const saved = await this.profileRepository.save(profile);
+  await this.cacheManager.del(`profile:${id}`); // Invalidate the cache for the updated profile
+  return saved;
+}
 
 async update (id:number,dto:updateProfileDto){
-  const profile=await this.findOne(id)
-const updateProfile=this.profileRepository.merge(profile,dto);
-const saved = await this.profileRepository.save(updateProfile);
-if (!saved){
-  throw new NotFoundException(`Profile with id ${id} not found`);
+  const profile=await this.profileRepository.findOneBy({id});
+  if (!profile){
+    throw new NotFoundException(`Profile with id ${id} not found`);
   }
+  const updateProfile=this.profileRepository.merge(profile,dto);
+  const saved = await this.profileRepository.save(updateProfile);
   await this.cacheManager.del(`profile:${id}`); // Invalidate the cache for the updated profile
   return saved;
 }

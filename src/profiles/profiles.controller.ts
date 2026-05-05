@@ -17,10 +17,12 @@ import {
   UploadedFile,
 
 } from '@nestjs/common';
+import { IncomingFileValidator } from 'src/FileValidator/incomingFileValidator';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 import { ProfilesService } from './profiles.service';
 import { createProfileDto, updateProfileDto } from './dto/create.profiles.dto';
+import { diskStorage } from 'multer';
 // decorator @Controller() is used to define a controller in NestJS.
 //  It takes an optional string parameter that specifies the route path for the controller. In this case, the controller will handle requests to the '/profiles' route.
 @Controller('profiles')
@@ -29,52 +31,59 @@ export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 @Version('1')
   @Get()
-  findAll() {
-    return this.profilesService.findAll();
+  async findAll() {
+    return await this.profilesService.findAll();
   }
   @Version('2')
   @Get()
-  findAll2() {
-    return this.profilesService.findAll();
+ async findAll2() {
+    return await this.profilesService.findAll();
   }
 
 
   @Get(':id')
-  findOne(@Param('id',ParseIntPipe) id: number) {
+ async findOne(@Param('id',ParseIntPipe) id: number) {
     // return this.profilesService.findOne(id);
     // throwError(() => new NotFoundException(`Profile with id ${id} not found`));
     // return this.profilesService.findOne(id);
-    try {
-       return this.profilesService.findOne(id);
-      
-    } catch (error) {
-      throw new NotFoundException(error.message);
-    }
+    return await this.profilesService.findOne(id);
+    // let service handle the error and throw it to the controller, the controllwe is for just direacting
+    //  the request and response, the service is for handling the business logic and error handling, 
+    // if there is an error in the service it will throw it to the controller and the controller will handle it and return the response to the client.
    
 
 
   }
 
-  @Post()
-  create(@Body(new ValidationPipe()) createProfileDto: createProfileDto){
-    return this.profilesService.create(createProfileDto);
-  }
+  // @Post()
+  // create(@Body(new ValidationPipe()) createProfileDto: createProfileDto){
+  //   return this.profilesService.create(createProfileDto);
+  // }
   @Post('file')
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadFile(@UploadedFile() file:Express.Multer.File){
-    try {
-      if (!file) {
-        throw new NotFoundException('No file uploaded');
-      }
-    } catch (error) {
-      throw new NotFoundException(error.message);
+  @UseInterceptors(FileInterceptor('file',{
+    storage:diskStorage({
+      destination: './uploads',
+    filename:(req ,file,cb)=>{
+      const uniqueSuffix =Date.now()+'-'+Math.round(Math.random()*1e9);
+      const originalName=file.originalname.replace(/\s/g,'-');
+      const fileName=`${uniqueSuffix}-${originalName}`;
+      cb(null,fileName);
     }
-    console.log(file);
+    })
+
+    
+  }))
+  async uploadFile(@UploadedFile(
+    new IncomingFileValidator()
+  ) 
+  file:Express.Multer.File){
+    // Handle the uploaded file (e.g., save it to disk, process it, etc.)
     return {
-      message:'File uploaded successfully',
-      fileName:file.originalname,
-      fileSize:file.size,
+      message: 'File uploaded successfully',
+      file: file.originalname,
+      filePath: file.path,
+      fileSize: file.size,
     }
   }
 

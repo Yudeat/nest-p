@@ -1,4 +1,4 @@
-import { IsString,Length } from 'class-validator';
+import { IsString,Length ,} from 'class-validator';
 
 
 export class createProfileDto {
@@ -20,5 +20,4 @@ export class updateProfileDto {
   @IsString()
   location: string;
 }
-
 
