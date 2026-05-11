@@ -10,7 +10,7 @@ transform(value: any, metadata: ArgumentMetadata) {
         throw new Error('Invalid file');
     }
     if(value.size > 5*this.oneMb){
-        throw new Error('File size exceeds the limit of 5KB');
+        throw new Error('File size exceeds the limit of 1MB');
     }
     return value;
 }

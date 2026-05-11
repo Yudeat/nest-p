@@ -6,6 +6,8 @@ import { Profile } from '../typeOrm';
 import type { Cache } from 'cache-manager';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class ProfilesService {
   private readonly logger=new Logger(ProfilesService.name);
@@ -14,12 +16,28 @@ export class ProfilesService {
     private readonly profileRepository:Repository<Profile>,
     @Inject('CACHE_MANAGER') private readonly cacheManager:Cache,// Injecting the cache manager
     @InjectQueue('REMINDER_SERVICE') private readonly reminderQueue:Queue, // Injecting the reminder service
+    private readonly httpService:HttpService,
   ) {
    
   }
+async enrichProfileWithExternalData(location:string){
+  try{
+    const {data}=await firstValueFrom(
+      this.httpService.get(`https://api.weatherapi.com/v1/current.json?key=YOUR_API_KEY&q=${location}`)
+    );
+    return {
+      ...data,
+      weather:data.current.condition.text,
+      temperature:data.current.temp_c,
+    };
+  }
+  catch (error){
+    this.logger.log(`Error fetching weather data for location ${location}: ${error.message}`);
+    return null; // Return null if there was an error fetching the data
+  }
+}
 
- 
-  async findAll() {
+async findAll() {
     return await this.profileRepository.find();
   }
   
@@ -37,32 +55,40 @@ export class ProfilesService {
   //   }
   //   return profile;
   // }
-  async findOne(id: number): Promise<Profile> {
-    const cacheKey=`profile:${id}`; // Define a unique cache key for the profile
-     const cacheProfile=await this.cacheManager.get<Profile>(cacheKey);
-     if (cacheProfile){
-       return cacheProfile; // Return the cached profile if it exists
-     }
-
-    try{
-     const profile=await this.profileRepository.findOneByOrFail({id});
-
-     await this.cacheManager.set(cacheKey,profile,0);
-
-await this.reminderQueue.add(
-        'send-reminder-job', // Job Name
-        { profileId: id, email: profile.location }, // Job Data (Payload)
-        { delay: 0, removeOnComplete: true } // Job Options
-      );    
-       return profile;
-
-    }
-      catch (error) {
-        throw new NotFoundException(error.message);
-      }
+  async findOne(id:number){
+    const cacheKey=`profile:${id}`;// Define a unique cache key for the profile
     
+    // Try to get the profile from the cache
+    const cacheProfile=await this.cacheManager.get<Profile>(cacheKey);
+    if (cacheProfile){
+      return cacheProfile; // Return the cached profile if it exists
+    }
 
+  let profile:Profile;
+  try {
+profile=await this.profileRepository.findOneByOrFail({id});
   }
+  catch (error){
+    this.logger.log(`Error fetching profile with id ${id}: ${error.message}`);
+    throw new NotFoundException(`Profile with id ${id} not found`);
+  }
+  // Store the profile in the cache with a TTL of 1 hour (3600000 milliseconds)
+  try{
+    await this.cacheManager.set(cacheKey,profile,3600000);
+
+    await this.reminderQueue.add('profileAccessed',{
+      profileId:id,
+      name:profile.name,
+      location:profile.location
+    },
+  {jobId:`profileAccessed:${id}`,delay:5000}
+  );
+  }
+  catch (error){
+    this.logger.log(`Error storing profile with id ${id} in cache: ${error.message}`);
+  }
+  return profile;
+}
 // async findOne(id: number) {
 //   return await this.cacheManager.wrap(
 //     `profile:${id}`, // Cache key
@@ -93,15 +119,13 @@ async updateProfileAvatar(id:number,filePath:string){
   return saved;
 }
 
-async update (id:number,dto:updateProfileDto){
-  const profile=await this.profileRepository.findOneBy({id});
-  if (!profile){
+async update(id:number,dto:updateProfileDto){
+  const result=await this.profileRepository.update(id,dto);
+  if (result.affected === 0){
     throw new NotFoundException(`Profile with id ${id} not found`);
   }
-  const updateProfile=this.profileRepository.merge(profile,dto);
-  const saved = await this.profileRepository.save(updateProfile);
   await this.cacheManager.del(`profile:${id}`); // Invalidate the cache for the updated profile
-  return saved;
+  return result;
 }
 
 

@@ -5,6 +5,7 @@ import { ProfilesModule } from './profiles/profiles.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@nestjs/cache-manager';
 import { BullModule } from '@nestjs/bullmq';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports:[
@@ -53,6 +54,7 @@ import { BullModule } from '@nestjs/bullmq';
     BullModule.registerQueue({
       name: 'profileQueue',
     }),
+    AuthModule,
   ],
   controllers: [ProfilesController],
   providers: [AppService],
